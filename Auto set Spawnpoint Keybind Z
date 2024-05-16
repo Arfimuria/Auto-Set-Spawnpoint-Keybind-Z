@@ -1,0 +1,70 @@
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Function to display notifications
+local function notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = 5;
+    })
+end
+
+-- Notify that the script has been executed
+notify("Script Notification", "Script Executed")
+
+-- Variable to keep track of the script's activation state
+local scriptActive = false
+local deathConnection
+
+-- Function to handle the player's death
+local function onDied()
+    if not scriptActive then return end  -- Ensure the script is still active
+
+    local oldCFrame = player.Character.HumanoidRootPart.CFrame
+
+    player.CharacterAdded:Wait()
+
+    -- Wait for the new character to be fully loaded
+    local character = player.Character
+    while not character:FindFirstChild("HumanoidRootPart") do
+        wait()
+    end
+
+    -- Reassign the CFrame to the old position
+    character.HumanoidRootPart.CFrame = oldCFrame
+
+    -- Reconnect the Died event to handle the next death
+    connectDiedEvent()
+end
+
+-- Function to connect the death event
+function connectDiedEvent()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        deathConnection = player.Character.Humanoid.Died:Connect(onDied)
+    end
+end
+
+-- Listen for key press events
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.Z then
+        scriptActive = not scriptActive
+        if scriptActive then
+            -- Script activated
+            notify("Script Notification", "Script Activated")
+            connectDiedEvent()
+        else
+            -- Script deactivated
+            notify("Script Notification", "Script Deactivated")
+            if deathConnection then
+                deathConnection:Disconnect()
+            end
+        end
+    end
+end)
